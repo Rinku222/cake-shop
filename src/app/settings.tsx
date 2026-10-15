@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Field, SectionTitle } from '@/components/ui';
+import { exportBackupFile, getBackupStatus, parseBackup, pickBackupFile, saveAutoBackup } from '@/lib/backup';
 import { buildReminderMessage } from '@/lib/messaging';
 import { buildSampleCustomers } from '@/lib/sampleData';
 import { DEFAULT_SETTINGS, useStore } from '@/lib/store';
@@ -21,6 +22,54 @@ const PREVIEW_CUSTOMER: Customer = {
 export default function SettingsScreen() {
   const { settings, updateSettings, customers, replaceAll } = useStore();
   const [importText, setImportText] = useState('');
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<Awaited<ReturnType<typeof getBackupStatus>> | null>(null);
+
+  useEffect(() => {
+    getBackupStatus().then(setBackupStatus);
+  }, [customers, settings]);
+
+  const saveNow = async () => {
+    if (backupBusy) return;
+    setBackupBusy(true);
+    try {
+      await saveAutoBackup({ customers, settings });
+      setBackupStatus(await getBackupStatus());
+      Alert.alert('Backup saved', 'The “cake customers” folder now contains your latest data.');
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const exportCopy = async () => {
+    if (backupBusy) return;
+    setBackupBusy(true);
+    try {
+      const result = await exportBackupFile({ customers, settings });
+      Alert.alert(result.ok ? 'Export ready' : 'Export failed', result.message);
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const restoreFromFile = async () => {
+    if (backupBusy) return;
+    try {
+      const file = await pickBackupFile();
+      if (!file) return;
+      const parsed = parseBackup(file.content);
+      Alert.alert(
+        'Restore from file?',
+        `This will replace your current ${customers.length} customers with the ${parsed.customers.length} customers in “${file.name}”.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Restore', style: 'destructive', onPress: () => replaceAll(parsed) },
+        ],
+      );
+    } catch (e) {
+      Alert.alert('Invalid backup', e instanceof Error ? e.message : 'Could not read this file.');
+    }
+  };
 
   const preview = buildReminderMessage(
     PREVIEW_CUSTOMER,
@@ -148,7 +197,33 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
-        <SectionTitle>Backup</SectionTitle>
+        <SectionTitle>Auto-backup</SectionTitle>
+        <Card style={{ gap: spacing.sm }}>
+          <Text style={styles.hint}>
+            The app automatically creates a “cake customers” folder and keeps your data backed up in it whenever you make a change — along with local storage.
+          </Text>
+          <Text style={styles.hint}>
+            Folder: {backupStatus?.folderExists ? 'ready' : 'created after your first change'}
+            {backupStatus?.fileExists ? ' · backup file: present' : ''}
+          </Text>
+          <Button title="Save backup now" icon="save-outline" onPress={saveNow} disabled={backupBusy} />
+          <Button
+            title="Export a copy to keep"
+            icon="share-outline"
+            variant="secondary"
+            onPress={exportCopy}
+            disabled={backupBusy}
+          />
+          <Button
+            title="Restore from file"
+            icon="folder-open-outline"
+            variant="secondary"
+            onPress={restoreFromFile}
+            disabled={backupBusy}
+          />
+        </Card>
+
+        <SectionTitle>Share & paste</SectionTitle>
         <Card style={{ gap: spacing.sm }}>
           <Button title="Export backup" icon="share-outline" variant="secondary" onPress={exportData} />
           <Text style={styles.hint}>Share to WhatsApp, email or notes to keep a copy. To restore, paste it below.</Text>

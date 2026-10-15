@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { saveAutoBackup } from './backup';
 import { ContactLog, Customer, Order, Settings } from './types';
 
 const STORAGE_KEY = 'cake-shop/v1';
@@ -48,7 +49,7 @@ function migrateSettings(saved: Partial<Settings> | undefined): Settings {
   return settings;
 }
 
-interface PersistedState {
+export interface PersistedState {
   customers: Customer[];
   settings: Settings;
 }
@@ -116,6 +117,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!loaded) return;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch((e) => console.warn('Failed to save data', e));
+  }, [state, loaded]);
+
+  // Keep the "cake customers" backup file in sync with the latest data (debounced).
+  useEffect(() => {
+    if (!loaded) return;
+    const timer = setTimeout(() => {
+      saveAutoBackup(state).catch((e) => console.warn('Failed to auto-backup', e));
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [state, loaded]);
 
   const mapCustomer = useCallback((id: string, fn: (c: Customer) => Customer) => {
