@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Avatar, Button, Chip, EmptyState } from '@/components/ui';
+import { Avatar, Badge, Button, Chip, EmptyState } from '@/components/ui';
 import { daysBetween, nextOccurrence, occasionEmoji, relativeDays } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { colors, radius, spacing } from '@/lib/theme';
@@ -77,7 +77,12 @@ export default function CustomersScreen() {
             >
               <Avatar name={customer.name} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.name}>{customer.name}</Text>
+                <View style={styles.nameRow}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {customer.name}
+                  </Text>
+                  {customer.orders.length >= 2 && <Badge label="Repeat" tone="success" />}
+                </View>
                 <Text style={styles.meta}>
                   {customer.phone} · {customer.orders.length} order{customer.orders.length === 1 ? '' : 's'}
                   {spent > 0 ? ` · ${settings.currency}${spent.toLocaleString()}` : ''}
@@ -133,6 +138,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   name: { fontSize: 16, fontWeight: '600', color: colors.text },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   meta: { fontSize: 12, color: colors.muted, marginTop: 2 },
   next: { fontSize: 12, fontWeight: '600', color: colors.muted },
 });

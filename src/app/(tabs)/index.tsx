@@ -19,10 +19,14 @@ export default function UpcomingScreen() {
 
   const sections = useMemo(() => {
     const items = getUpcoming(customers, windowDays).filter((i) => filter === 'all' || !i.reminded);
+    // Not-reminded occasions first (grouped by urgency), reminded ones at the very end.
+    const pending = items.filter((i) => !i.reminded);
+    const reminded = items.filter((i) => i.reminded);
     const groups: { title: string; data: UpcomingItem[] }[] = [
-      { title: 'Today', data: items.filter((i) => i.daysAway === 0) },
-      { title: 'Next 7 days', data: items.filter((i) => i.daysAway >= 1 && i.daysAway <= 7) },
-      { title: 'Later', data: items.filter((i) => i.daysAway > 7) },
+      { title: 'Today', data: pending.filter((i) => i.daysAway === 0) },
+      { title: 'Next 7 days', data: pending.filter((i) => i.daysAway >= 1 && i.daysAway <= 7) },
+      { title: 'Later', data: pending.filter((i) => i.daysAway > 7) },
+      { title: 'Reminded', data: reminded },
     ];
     return groups.filter((g) => g.data.length > 0);
   }, [customers, windowDays, filter]);

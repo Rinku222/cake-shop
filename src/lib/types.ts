@@ -52,6 +52,12 @@ export interface Settings {
   currency: string; // symbol, e.g. "₹"
   upcomingWindowDays: number;
   messageTemplate: string;
+  /** Link to the shop's Swiggy listing, used for reorder prompts. */
+  swiggyUrl?: string;
+  /** Link to the shop's Zomato listing, used for reorder prompts. */
+  zomatoUrl?: string;
+  /** Link to the shop's location on Google Maps, shown as "Visit our shop". */
+  mapsUrl?: string;
 }
 
 export const OCCASION_TYPES: { value: OccasionType; label: string; emoji: string }[] = [

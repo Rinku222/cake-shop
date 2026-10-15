@@ -66,7 +66,12 @@ export default function SettingsScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+      >
         <SectionTitle>Shop</SectionTitle>
         <Card>
           <Field label="Shop name" value={settings.shopName} onChangeText={(shopName) => updateSettings({ shopName })} />
@@ -84,6 +89,36 @@ export default function SettingsScreen() {
               <Field label="Currency" value={settings.currency} onChangeText={(currency) => updateSettings({ currency })} />
             </View>
           </View>
+          <Field
+            label="Swiggy shop link"
+            value={settings.swiggyUrl ?? ''}
+            onChangeText={(swiggyUrl) => updateSettings({ swiggyUrl })}
+            placeholder="https://www.swiggy.com/menu/…"
+            keyboardType="url"
+            autoCapitalize="none"
+            autoCorrect={false}
+            hint="Added to the WhatsApp message as “Order again on Swiggy”"
+          />
+          <Field
+            label="Zomato shop link"
+            value={settings.zomatoUrl ?? ''}
+            onChangeText={(zomatoUrl) => updateSettings({ zomatoUrl })}
+            placeholder="https://zomato.onelink.me/…"
+            keyboardType="url"
+            autoCapitalize="none"
+            autoCorrect={false}
+            hint="Added to the WhatsApp message as “Order again on Zomato”"
+          />
+          <Field
+            label="Shop location link"
+            value={settings.mapsUrl ?? ''}
+            onChangeText={(mapsUrl) => updateSettings({ mapsUrl })}
+            placeholder="https://maps.app.goo.gl/…"
+            keyboardType="url"
+            autoCapitalize="none"
+            autoCorrect={false}
+            hint="Google Maps link, added to the WhatsApp message as “Visit our shop”"
+          />
         </Card>
 
         <SectionTitle
@@ -105,7 +140,7 @@ export default function SettingsScreen() {
             onChangeText={(messageTemplate) => updateSettings({ messageTemplate })}
             multiline
             style={{ minHeight: 110, textAlignVertical: 'top' }}
-            hint="Placeholders: {name} {whose} {occasion} {date} {shop} {flavor}"
+            hint="Placeholders: {name} {whose} {occasion} {when} {reorder} {date} {shop} {flavor}"
           />
           <Text style={styles.previewLabel}>Preview</Text>
           <View style={styles.preview}>
@@ -139,7 +174,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, paddingBottom: 48 },
+  container: { padding: spacing.lg, paddingBottom: 128 },
   row: { flexDirection: 'row', gap: spacing.md },
   hint: { fontSize: 12, color: colors.muted },
   previewLabel: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 6 },

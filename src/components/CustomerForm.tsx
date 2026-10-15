@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { DateField } from './DateField';
-import { Button, Card, Chip, Field, IconButton, SectionTitle } from './ui';
+import { Avatar, Badge, Button, Card, Chip, Field, IconButton, SectionTitle } from './ui';
 import { occurrenceInYear, toISODate } from '@/lib/dates';
-import { uid } from '@/lib/store';
+import { normalizePhone, uid, useStore } from '@/lib/store';
 import { colors, spacing } from '@/lib/theme';
 import { Customer, Occasion, OCCASION_TYPES, OccasionType, Order } from '@/lib/types';
 
@@ -59,6 +61,15 @@ export function CustomerForm({
   const [weight, setWeight] = useState('');
   const [amount, setAmount] = useState('');
 
+  const { findCustomersByPhone, settings } = useStore();
+
+  // Customers whose phone already matches what's being typed. The customer being
+  // edited is excluded so editing their own details never flags a false duplicate.
+  const existingMatches = useMemo(() => {
+    if (normalizePhone(phone).length < 7) return [];
+    return findCustomersByPhone(phone, initial?.id);
+  }, [phone, findCustomersByPhone, initial?.id]);
+
   const updateOccasion = (id: string, patch: Partial<OccasionDraft>) =>
     setOccasions((list) => list.map((o) => (o.id === id ? { ...o, ...patch } : o)));
 
@@ -69,6 +80,29 @@ export function CustomerForm({
     if (occasions.some((o) => o.type === 'other' && !o.label.trim()))
       return Alert.alert('Occasion name', 'Please name each "Other" occasion.');
 
+    if (existingMatches.length > 0) {
+      const match = existingMatches[0];
+      Alert.alert(
+        'Existing customer found',
+        `${match.name} is already saved with this phone number (${match.orders.length} order${
+          match.orders.length === 1 ? '' : 's'
+        }). Creating a new entry will split their order history.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'View existing',
+            onPress: () => router.push({ pathname: '/customer/[id]', params: { id: match.id } }),
+          },
+          { text: 'Create anyway', style: 'destructive', onPress: doSubmit },
+        ],
+      );
+      return;
+    }
+
+    doSubmit();
+  };
+
+  const doSubmit = () => {
     const finalOccasions: Occasion[] = occasions.map((o) => ({
       id: o.id,
       type: o.type,
@@ -108,7 +142,12 @@ export function CustomerForm({
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+      >
         <SectionTitle>Customer</SectionTitle>
         <Card>
           <Field label="Name *" value={name} onChangeText={setName} placeholder="e.g. Priya Sharma" />
@@ -142,6 +181,44 @@ export function CustomerForm({
             style={{ minHeight: 70, textAlignVertical: 'top' }}
           />
         </Card>
+
+        {existingMatches.length > 0 && (
+          <Card style={styles.duplicateCard}>
+            <View style={styles.duplicateHeader}>
+              <Ionicons name="warning" size={20} color={colors.warning} />
+              <Text style={styles.duplicateTitle}>Phone number already saved</Text>
+            </View>
+            <Text style={styles.muted}>
+              {existingMatches.length === 1
+                ? 'This looks like an existing customer. Adding a new entry may split their order history.'
+                : 'Multiple customers match this number. Adding a new entry may split their history.'}
+            </Text>
+            {existingMatches.map((c) => {
+              const spent = c.orders.reduce((s, o) => s + (o.amount ?? 0), 0);
+              return (
+                <View key={c.id} style={styles.duplicateRow}>
+                  <Avatar name={c.name} size={34} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.duplicateName}>{c.name}</Text>
+                    <Text style={styles.muted}>
+                      {c.phone} · {c.orders.length} order{c.orders.length === 1 ? '' : 's'}
+                      {spent > 0 ? ` · ${settings.currency}${spent.toLocaleString()}` : ''}
+                    </Text>
+                  </View>
+                  {c.orders.length >= 2 && <Badge label="Repeat customer" tone="success" />}
+                </View>
+              );
+            })}
+            <Button
+              title="View existing customer"
+              icon="eye"
+              variant="secondary"
+              compact
+              style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}
+              onPress={() => router.push({ pathname: '/customer/[id]', params: { id: existingMatches[0].id } })}
+            />
+          </Card>
+        )}
 
         <SectionTitle
           right={
@@ -235,7 +312,7 @@ export function CustomerForm({
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, paddingBottom: 48 },
+  container: { padding: spacing.lg, paddingBottom: 128 },
   occasionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   occasionIndex: { fontWeight: '700', color: colors.text, fontSize: 15 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
@@ -244,4 +321,9 @@ const styles = StyleSheet.create({
   switchHint: { fontSize: 12, color: colors.muted, marginTop: 2 },
   row: { flexDirection: 'row', gap: spacing.md },
   muted: { color: colors.muted, fontSize: 12 },
+  duplicateCard: { borderColor: colors.warning, backgroundColor: colors.warningSoft },
+  duplicateHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  duplicateTitle: { fontSize: 15, fontWeight: '700', color: colors.warning, flex: 1 },
+  duplicateRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
+  duplicateName: { fontSize: 14, fontWeight: '600', color: colors.text },
 });

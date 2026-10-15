@@ -1,5 +1,5 @@
 import { Alert, Linking, Platform } from 'react-native';
-import { formatDate, milestoneText, occasionTitle } from './dates';
+import { daysBetween, formatDayMonth, milestoneText, occasionTitle } from './dates';
 import { Customer, Occasion, Settings } from './types';
 
 /** Normalises a phone number to international digits (no "+"), adding the default country code if missing. */
@@ -16,14 +16,37 @@ export function buildReminderMessage(c: Customer, o: Occasion, date: Date, setti
   const whose = o.forWhom?.trim() ? `${o.forWhom.trim()}'s` : 'your';
   const milestone = milestoneText(o, date);
   const occasion = occasionTitle(o).toLowerCase() + (milestone ? ` (${milestone.toLowerCase()})` : '');
+
+  // "When" phrase that never includes the year, so an unknown birth year
+  // (the "Year is accurate" toggle off) never leaks into the message.
+  const dayMonth = formatDayMonth(date.getDate(), date.getMonth() + 1); // e.g. "15 Oct"
+  const daysUntil = daysBetween(new Date(), date);
+  const when =
+    daysUntil === 0
+      ? `is today (${dayMonth})`
+      : daysUntil === 1
+        ? `is tomorrow (${dayMonth})`
+        : `is coming up on ${dayMonth}`;
+
+  // Ordering & location links — each on its own line so the message stays clean.
+  const reorderLinks: string[] = [];
+  if (settings.swiggyUrl?.trim()) reorderLinks.push(`🛵 Swiggy: ${settings.swiggyUrl.trim()}`);
+  if (settings.zomatoUrl?.trim()) reorderLinks.push(`🥡 Zomato: ${settings.zomatoUrl.trim()}`);
+  if (settings.mapsUrl?.trim()) reorderLinks.push(`📍 Visit our shop: ${settings.mapsUrl.trim()}`);
+  const reorder = reorderLinks.length ? `\n\nCraving more? Order again:\n${reorderLinks.join('\n')}` : '';
+
   return settings.messageTemplate
     .replace(/\{name\}/g, firstName)
     .replace(/\{whose\}/g, whose.charAt(0).toUpperCase() + whose.slice(1))
     .replace(/\{occasion\}/g, occasion)
-    .replace(/\{date\}/g, formatDate(date))
+    .replace(/\{when\}/g, when)
+    // {date} is kept as a legacy placeholder but also omits the year.
+    .replace(/\{date\}/g, dayMonth)
+    .replace(/\{reorder\}/g, reorder)
     .replace(/\{shop\}/g, settings.shopName)
     .replace(/\{flavor\}/g, c.favoriteFlavor?.trim() || '')
-    .replace(/ {2,}/g, ' ');
+    .replace(/ {2,}/g, ' ')
+    .trim();
 }
 
 async function open(url: string, fallbackMessage: string) {
