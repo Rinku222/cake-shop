@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "cake-shop",
+    "name": "Cake Reminders",
     "slug": "cake-shop",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,15 +11,25 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FFF1F4",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rinku222.cakeshop"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "expo-router",
+      "expo-font"
+    ],
+    "scheme": "cakeshop",
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
