@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { RestoreBackupButton } from '@/components/RestoreBackupButton';
 import { Avatar, Badge, Button, Chip, EmptyState } from '@/components/ui';
 import { daysBetween, nextOccurrence, occasionEmoji, relativeDays } from '@/lib/dates';
 import { useStore } from '@/lib/store';
@@ -102,7 +103,12 @@ export default function CustomersScreen() {
             icon="people-outline"
             title="No customers yet"
             message="Customers you add will be listed here."
-            action={<Button title="Add customer" icon="person-add" onPress={() => router.push('/add')} />}
+            action={
+              <View style={{ gap: spacing.sm, alignSelf: 'stretch' }}>
+                <Button title="Add customer" icon="person-add" onPress={() => router.push('/add')} />
+                <RestoreBackupButton />
+              </View>
+            }
           />
         ) : (
           <EmptyState icon="search" title="No matches" message={`Nobody matches “${query}”.`} />

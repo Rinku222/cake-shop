@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, SectionList, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, SectionList, StyleSheet, Text, View } from 'react-native';
+import { RestoreBackupButton } from '@/components/RestoreBackupButton';
 import { UpcomingCard } from '@/components/UpcomingCard';
 import { Button, Chip, EmptyState } from '@/components/ui';
-import { getBackupStatus, readAutoBackup } from '@/lib/backup';
 import { getUpcoming, UpcomingItem } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { colors, spacing } from '@/lib/theme';
@@ -13,47 +13,9 @@ const WINDOWS = [7, 15, 30];
 type Filter = 'all' | 'pending';
 
 export default function UpcomingScreen() {
-  const { customers, settings, loaded, updateSettings, replaceAll } = useStore();
+  const { customers, settings, loaded, updateSettings } = useStore();
   const [filter, setFilter] = useState<Filter>('all');
   const windowDays = settings.upcomingWindowDays;
-
-  // Show a "Restore backup" action only when the "cake customers" folder + backup file exist.
-  const [hasBackup, setHasBackup] = useState(false);
-  const [restoring, setRestoring] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    if (customers.length === 0) {
-      getBackupStatus().then((s) => {
-        if (mounted) setHasBackup(s.fileExists);
-      });
-    }
-    return () => {
-      mounted = false;
-    };
-  }, [customers.length]);
-
-  const restoreBackup = async () => {
-    if (restoring) return;
-    setRestoring(true);
-    try {
-      const backup = await readAutoBackup();
-      if (!backup) {
-        Alert.alert('No backup found', 'No backup file was found in the “cake customers” folder.');
-        return;
-      }
-      Alert.alert(
-        'Restore backup?',
-        `Replace the current (empty) data with the backup (${backup.customers.length} customers)?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Restore', style: 'destructive', onPress: () => replaceAll(backup) },
-        ],
-      );
-    } finally {
-      setRestoring(false);
-    }
-  };
 
   const sections = useMemo(() => {
     const items = getUpcoming(customers, windowDays).filter((i) => filter === 'all' || !i.reminded);
@@ -114,15 +76,7 @@ export default function UpcomingScreen() {
             action={
               <View style={{ gap: spacing.sm, alignSelf: 'stretch' }}>
                 <Button title="Add first customer" icon="person-add" onPress={() => router.push('/add')} />
-                {hasBackup && (
-                  <Button
-                    title="Restore backup"
-                    icon="folder-open-outline"
-                    variant="secondary"
-                    onPress={restoreBackup}
-                    disabled={restoring}
-                  />
-                )}
+                <RestoreBackupButton />
               </View>
             }
           />

@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Android 9 and older only: plain file access to Documents/Cake Customers. Android 10+ needs no
+       storage permission (the app writes its own file, or uses a grant for that one folder). -->
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+</manifest>

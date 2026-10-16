@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Field, SectionTitle } from '@/components/ui';
-import { exportBackupFile, getBackupStatus, parseBackup, pickBackupFile, saveAutoBackup } from '@/lib/backup';
+import {
+  BackupAccessNeededError,
+  BACKUP_LOCATION,
+  exportBackupFile,
+  getBackupStatus,
+  parseBackup,
+  pickBackupFile,
+  requestBackupAccess,
+  saveAutoBackup,
+} from '@/lib/backup';
 import { buildReminderMessage } from '@/lib/messaging';
 import { buildSampleCustomers } from '@/lib/sampleData';
 import { DEFAULT_SETTINGS, useStore } from '@/lib/store';
@@ -33,9 +42,18 @@ export default function SettingsScreen() {
     if (backupBusy) return;
     setBackupBusy(true);
     try {
-      await saveAutoBackup({ customers, settings });
+      let ok: boolean;
+      try {
+        ok = await saveAutoBackup({ customers, settings });
+      } catch (e) {
+        if (!(e instanceof BackupAccessNeededError) || !(await requestBackupAccess())) return;
+        ok = await saveAutoBackup({ customers, settings });
+      }
       setBackupStatus(await getBackupStatus());
-      Alert.alert('Backup saved', 'The “cake customers” folder now contains your latest data.');
+      Alert.alert(
+        ok ? 'Backup saved' : 'Backup failed',
+        ok ? `Your latest data is saved in ${BACKUP_LOCATION}.` : 'Could not write the backup file.',
+      );
     } finally {
       setBackupBusy(false);
     }
@@ -200,11 +218,13 @@ export default function SettingsScreen() {
         <SectionTitle>Auto-backup</SectionTitle>
         <Card style={{ gap: spacing.sm }}>
           <Text style={styles.hint}>
-            The app automatically creates a “cake customers” folder and keeps your data backed up in it whenever you make a change — along with local storage.
+            Whenever you make a change, the app also saves your data in the “Cake Customers” folder inside Documents.
+            The folder stays even if the app’s data is cleared or the app is reinstalled, and a “Restore backup” button
+            then appears on the empty Upcoming and Customers screens.
           </Text>
           <Text style={styles.hint}>
-            Folder: {backupStatus?.folderExists ? 'ready' : 'created after your first change'}
-            {backupStatus?.fileExists ? ' · backup file: present' : ''}
+            {BACKUP_LOCATION} ·{' '}
+            {backupStatus?.fileExists ? 'folder present' : 'created after your first change'}
           </Text>
           <Button title="Save backup now" icon="save-outline" onPress={saveNow} disabled={backupBusy} />
           <Button
