@@ -15,7 +15,7 @@ import {
   requestBackupAccess,
   saveAutoBackup,
 } from "./backup";
-import { ContactLog, Customer, Order, Settings } from "./types";
+import { ContactLog, Customer, FeedbackLog, Order, Settings } from "./types";
 
 const STORAGE_KEY = "cake-shop/v1";
 
@@ -47,7 +47,8 @@ export const DEFAULT_SETTINGS: Settings = {
   messageTemplate: MESSAGE_TEMPLATE_V4,
   swiggyUrl: "https://www.swiggy.com/menu/1387782?source=sharing",
   zomatoUrl: "https://zomato.onelink.me/xqzv/txaxxpuy",
-  mapsUrl: "https://maps.app.goo.gl/Q97QZ9YJ1v7G2RNM6",
+  mapsUrl: 'https://maps.app.goo.gl/Q97QZ9YJ1v7G2RNM6',
+  reviewUrl: 'https://www.google.com/maps/place//data=!4m3!3m2!1s0x3950b92e00f2aa3f:0x2af7a337230cf0ef!12e1',
 };
 
 /** Applies defaults and one-off template migrations to saved settings. */
@@ -111,6 +112,8 @@ interface StoreValue extends PersistedState {
   deleteOrder: (customerId: string, orderId: string) => void;
   logContact: (customerId: string, log: Omit<ContactLog, "at">) => void;
   undoContact: (customerId: string, occasionId: string, year: number) => void;
+  logFeedback: (customerId: string, channel: FeedbackLog['channel']) => void;
+  undoFeedback: (customerId: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   replaceAll: (state: PersistedState) => void;
 }
@@ -249,6 +252,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           id: uid(),
           createdAt: new Date().toISOString(),
           contactLog: [],
+          feedbackLog: [],
         };
         setState((s) => ({ ...s, customers: [...s.customers, customer] }));
         return customer;
@@ -287,6 +291,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             (l) => !(l.occasionId === occasionId && l.year === year),
           ),
         })),
+      logFeedback: (customerId, channel) =>
+        mapCustomer(customerId, (c) => ({
+          ...c,
+          feedbackLog: [{ channel, at: new Date().toISOString() }, ...(c.feedbackLog ?? [])],
+        })),
+      undoFeedback: (customerId) =>
+        mapCustomer(customerId, (c) => ({ ...c, feedbackLog: [] })),
       updateSettings: (patch) =>
         setState((s) => ({ ...s, settings: { ...s.settings, ...patch } })),
       replaceAll: (next) =>

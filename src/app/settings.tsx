@@ -186,6 +186,16 @@ export default function SettingsScreen() {
             autoCorrect={false}
             hint="Google Maps link, added to the WhatsApp message as “Visit our shop”"
           />
+          <Field
+            label="Google review link"
+            value={settings.reviewUrl ?? ''}
+            onChangeText={(reviewUrl) => updateSettings({ reviewUrl })}
+            placeholder="https://www.google.com/maps/place/…"
+            keyboardType="url"
+            autoCapitalize="none"
+            autoCorrect={false}
+            hint="Sent to new customers asking for a Google review"
+          />
         </Card>
 
         <SectionTitle

@@ -13,6 +13,7 @@ export const colors = {
   warningSoft: '#FFF0E6',
   danger: '#C92A2A',
   whatsapp: '#25D366',
+  sms: '#2196F3',
 };
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };

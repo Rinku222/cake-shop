@@ -18,7 +18,7 @@ export function SectionTitle({ children, right }: { children: ReactNode; right?:
   );
 }
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'whatsapp' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'whatsapp' | 'sms' | 'ghost';
 
 export function Button({
   title,
@@ -52,7 +52,7 @@ export function Button({
       ]}
     >
       {icon && <Ionicons name={icon} size={compact ? 16 : 18} color={v.fg} />}
-      <Text style={[styles.buttonText, compact && { fontSize: 13 }, { color: v.fg }]}>{title}</Text>
+      {!!title && <Text style={[styles.buttonText, compact && { fontSize: 13 }, { color: v.fg }]}>{title}</Text>}
     </Pressable>
   );
 }
@@ -62,6 +62,7 @@ const buttonVariants: Record<ButtonVariant, { bg: string; fg: string; border: st
   secondary: { bg: colors.card, fg: colors.primary, border: colors.primary },
   danger: { bg: colors.card, fg: colors.danger, border: colors.danger },
   whatsapp: { bg: colors.whatsapp, fg: '#fff', border: colors.whatsapp },
+  sms: { bg: colors.sms, fg: '#fff', border: colors.sms },
   ghost: { bg: 'transparent', fg: colors.primary, border: 'transparent' },
 };
 

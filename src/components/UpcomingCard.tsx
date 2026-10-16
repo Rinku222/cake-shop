@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar, Badge, Button } from './ui';
 import { formatDate, formatWeekday, milestoneText, occasionEmoji, occasionTitle, relativeDays, UpcomingItem } from '@/lib/dates';
-import { buildReminderMessage, openWhatsApp } from '@/lib/messaging';
+import { buildReminderMessage, openSms, openWhatsApp } from '@/lib/messaging';
 import { useStore } from '@/lib/store';
 import { colors, radius, spacing } from '@/lib/theme';
 
@@ -16,6 +16,11 @@ export function UpcomingCard({ item }: { item: UpcomingItem }) {
   const sendWhatsApp = async () => {
     const opened = await openWhatsApp(customer.phone, buildReminderMessage(customer, occasion, date, settings), settings);
     if (opened) logContact(customer.id, { occasionId: occasion.id, year, channel: 'whatsapp' });
+  };
+
+  const sendSms = async () => {
+    const opened = await openSms(customer.phone, buildReminderMessage(customer, occasion, date, settings));
+    if (opened) logContact(customer.id, { occasionId: occasion.id, year, channel: 'sms' });
   };
 
   const urgency = daysAway === 0 ? colors.primary : daysAway <= 3 ? colors.warning : colors.border;
@@ -65,7 +70,8 @@ export function UpcomingCard({ item }: { item: UpcomingItem }) {
               onPress={() => logContact(customer.id, { occasionId: occasion.id, year, channel: 'manual' })}
             />
           )}
-          <Button title="WhatsApp" icon="logo-whatsapp" variant="whatsapp" compact onPress={sendWhatsApp} />
+          <Button title="" icon="chatbubble-outline" variant="sms" compact onPress={sendSms} />
+          <Button title="" icon="logo-whatsapp" variant="whatsapp" compact onPress={sendWhatsApp} />
         </View>
       </Pressable>
   );

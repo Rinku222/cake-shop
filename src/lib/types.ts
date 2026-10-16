@@ -24,6 +24,12 @@ export interface Order {
   notes?: string;
 }
 
+/** Records that a feedback request was sent to a customer. */
+export interface FeedbackLog {
+  at: string; // ISO timestamp
+  channel: 'whatsapp' | 'sms';
+}
+
 /** Records that the customer was reminded about a specific occurrence of an occasion. */
 export interface ContactLog {
   occasionId: string;
@@ -43,6 +49,7 @@ export interface Customer {
   occasions: Occasion[];
   orders: Order[];
   contactLog: ContactLog[];
+  feedbackLog: FeedbackLog[];
   createdAt: string;
 }
 
@@ -58,6 +65,8 @@ export interface Settings {
   zomatoUrl?: string;
   /** Link to the shop's location on Google Maps, shown as "Visit our shop". */
   mapsUrl?: string;
+  /** Link to the shop's Google review page, used in feedback messages. */
+  reviewUrl?: string;
 }
 
 export const OCCASION_TYPES: { value: OccasionType; label: string; emoji: string }[] = [

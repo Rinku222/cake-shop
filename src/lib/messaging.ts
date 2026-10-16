@@ -72,3 +72,11 @@ export function openSms(phone: string, message: string) {
 export function callPhone(phone: string) {
   return open(`tel:${phone}`, 'Calling is not available on this device.');
 }
+
+const GOOGLE_REVIEW_URL = 'https://www.google.com/maps/place//data=!4m3!3m2!1s0x3950b92e00f2aa3f:0x2af7a337230cf0ef!12e1';
+
+export function buildFeedbackMessage(customerName: string, shopName: string, reviewUrl?: string): string {
+  const firstName = customerName.trim().split(/\s+/)[0];
+  const link = reviewUrl?.trim() || GOOGLE_REVIEW_URL;
+  return `Hi ${firstName}! 😊 Thank you so much for choosing ${shopName}. We hope you loved your cake! 🎂\n\nWe'd be truly grateful if you could spare a moment to share your experience on Google — it means the world to us! 🙏\n\n⭐ Leave a review: ${link}\n\nWarm regards,\n${shopName} ❤️`;
+}

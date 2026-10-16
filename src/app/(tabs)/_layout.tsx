@@ -8,6 +8,9 @@ import { colors } from '@/lib/theme';
 export default function TabsLayout() {
   const { customers, settings } = useStore();
   const pending = getUpcoming(customers, settings.upcomingWindowDays).filter((i) => !i.reminded).length;
+  const feedbackPending = customers.filter(
+    (c) => Date.now() - new Date(c.createdAt).getTime() <= 3 * 24 * 60 * 60 * 1000 && (c.feedbackLog ?? []).length === 0
+  ).length;
 
   return (
     <Tabs
@@ -55,6 +58,15 @@ export default function TabsLayout() {
         options={{
           title: 'Insights',
           tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="feedback"
+        options={{
+          title: 'Feedback',
+          tabBarBadge: feedbackPending > 0 ? feedbackPending : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.primary },
+          tabBarIcon: ({ color, size }) => <Ionicons name="star-outline" color={color} size={size} />,
         }}
       />
     </Tabs>
