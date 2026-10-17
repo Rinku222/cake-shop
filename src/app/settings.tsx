@@ -25,11 +25,12 @@ const PREVIEW_CUSTOMER: Customer = {
   occasions: [],
   orders: [],
   contactLog: [],
+  feedbackLog: [],
   createdAt: '',
 };
 
 export default function SettingsScreen() {
-  const { settings, updateSettings, customers, replaceAll } = useStore();
+  const { settings, updateSettings, customers, replaceAll, backupNeedsAccess } = useStore();
   const [importText, setImportText] = useState('');
   const [backupBusy, setBackupBusy] = useState(false);
   const [backupStatus, setBackupStatus] = useState<Awaited<ReturnType<typeof getBackupStatus>> | null>(null);
@@ -234,7 +235,11 @@ export default function SettingsScreen() {
           </Text>
           <Text style={styles.hint}>
             {BACKUP_LOCATION} ·{' '}
-            {backupStatus?.fileExists ? 'folder present' : 'created after your first change'}
+            {backupNeedsAccess
+              ? 'not updating — tap “Save backup now” and allow the folder'
+              : backupStatus?.fileExists
+                ? 'folder present'
+                : 'created after your first change'}
           </Text>
           <Button title="Save backup now" icon="save-outline" onPress={saveNow} disabled={backupBusy} />
           <Button

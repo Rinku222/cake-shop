@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Alert, AppState } from "react-native";
+import { AppState } from "react-native";
 import {
   BackupAccessNeededError,
   requestBackupAccess,
@@ -100,11 +100,15 @@ export function phoneMatches(
 
 interface StoreValue extends PersistedState {
   loaded: boolean;
+  /** The backup folder needs the user's permission again before it can be updated. */
+  backupNeedsAccess: boolean;
+  /** Asks for access to the backup folder and saves the latest data there. */
+  reconnectBackup: () => Promise<boolean>;
   getCustomer: (id: string) => Customer | undefined;
   /** All customers whose phone matches, optionally excluding one (e.g. the one being edited). */
   findCustomersByPhone: (phone: string, excludeId?: string) => Customer[];
   addCustomer: (
-    c: Omit<Customer, "id" | "createdAt" | "contactLog">,
+    c: Omit<Customer, "id" | "createdAt" | "contactLog" | "feedbackLog">,
   ) => Customer;
   updateCustomer: (id: string, patch: Partial<Omit<Customer, "id">>) => void;
   deleteCustomer: (id: string) => void;
@@ -132,8 +136,11 @@ function useBackupSync(state: PersistedState, loaded: boolean) {
   const latest = useRef(state);
   const hadData = useRef(false);
   const dirty = useRef(false);
-  const askedForAccess = useRef(false);
   const writing = useRef(false);
+  // True when the backup folder holds a file from an earlier install (or "Clear data" ran) and
+  // Android needs the user to allow access to that folder before it can be updated. Never
+  // prompts on its own: the user reconnects from Settings or by tapping "Restore backup".
+  const [needsAccess, setNeedsAccess] = useState(false);
 
   const write = useCallback(async () => {
     if (!dirty.current || writing.current) return;
@@ -141,36 +148,22 @@ function useBackupSync(state: PersistedState, loaded: boolean) {
     dirty.current = false;
     try {
       if (!(await saveAutoBackup(latest.current))) dirty.current = true;
+      else setNeedsAccess(false);
     } catch (e) {
       dirty.current = true;
-      if (!(e instanceof BackupAccessNeededError) || askedForAccess.current)
-        return;
-      // The folder holds a backup from an earlier install (or "Clear data" ran): Android needs
-      // the user to allow access to that one folder before the app can update it again.
-      askedForAccess.current = true;
-      Alert.alert(
-        "Reconnect your backup folder",
-        "To keep your customers backed up in Documents/Cake Customers, allow the app to use that folder.\n\n" +
-          "On the next screen, tap “Use this folder”, then “Allow”.",
-        [
-          { text: "Not now", style: "cancel" },
-          {
-            text: "Continue",
-            onPress: async () => {
-              if (await requestBackupAccess()) {
-                dirty.current = false;
-                await saveAutoBackup(latest.current).catch(
-                  () => (dirty.current = true),
-                );
-              }
-            },
-          },
-        ],
-      );
+      if (e instanceof BackupAccessNeededError) setNeedsAccess(true);
     } finally {
       writing.current = false;
     }
   }, []);
+
+  /** Asks for access to the backup folder, then writes the latest data into it. */
+  const reconnect = useCallback(async () => {
+    if (!(await requestBackupAccess())) return false;
+    dirty.current = true;
+    await write();
+    return true;
+  }, [write]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -189,6 +182,8 @@ function useBackupSync(state: PersistedState, loaded: boolean) {
     });
     return () => sub.remove();
   }, [write]);
+
+  return { needsAccess, reconnect };
 }
 
 export function uid(): string {
@@ -223,7 +218,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [state, loaded]);
 
   // Keep the backup file on the phone in sync with local storage.
-  useBackupSync(state, loaded);
+  const backup = useBackupSync(state, loaded);
 
   const mapCustomer = useCallback(
     (id: string, fn: (c: Customer) => Customer) => {
@@ -239,6 +234,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       loaded,
+      backupNeedsAccess: backup.needsAccess,
+      reconnectBackup: backup.reconnect,
       getCustomer: (id) => state.customers.find((c) => c.id === id),
       findCustomersByPhone: (phone, excludeId) =>
         state.customers.filter(
@@ -247,10 +244,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             phoneMatches(phone, c.phone, state.settings.countryCode),
         ),
       addCustomer: (input) => {
+        const now = new Date().toISOString();
         const customer: Customer = {
           ...input,
+          orders: input.orders.map((o) => ({ createdAt: now, ...o })),
           id: uid(),
-          createdAt: new Date().toISOString(),
+          createdAt: now,
           contactLog: [],
           feedbackLog: [],
         };
@@ -267,7 +266,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addOrder: (customerId, order) =>
         mapCustomer(customerId, (c) => ({
           ...c,
-          orders: [{ ...order, id: uid() }, ...c.orders],
+          orders: [{ ...order, id: uid(), createdAt: new Date().toISOString() }, ...c.orders],
         })),
       deleteOrder: (customerId, orderId) =>
         mapCustomer(customerId, (c) => ({
@@ -296,8 +295,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ...c,
           feedbackLog: [{ channel, at: new Date().toISOString() }, ...(c.feedbackLog ?? [])],
         })),
+      // Removes only the latest request, so earlier orders stay marked as notified.
       undoFeedback: (customerId) =>
-        mapCustomer(customerId, (c) => ({ ...c, feedbackLog: [] })),
+        mapCustomer(customerId, (c) => ({ ...c, feedbackLog: (c.feedbackLog ?? []).slice(1) })),
       updateSettings: (patch) =>
         setState((s) => ({ ...s, settings: { ...s.settings, ...patch } })),
       replaceAll: (next) =>
@@ -306,7 +306,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           settings: migrateSettings(next.settings),
         }),
     }),
-    [state, loaded, mapCustomer],
+    [state, loaded, mapCustomer, backup.needsAccess, backup.reconnect],
   );
 
   return (

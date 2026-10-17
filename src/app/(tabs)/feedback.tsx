@@ -2,21 +2,16 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Avatar, Button, EmptyState } from '@/components/ui';
+import { formatDate } from '@/lib/dates';
+import { feedbackStatus, latestOrder } from '@/lib/feedback';
 import { buildFeedbackMessage, openSms, openWhatsApp } from '@/lib/messaging';
 import { useStore } from '@/lib/store';
 import { colors, radius, spacing } from '@/lib/theme';
 import { Customer } from '@/lib/types';
 
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
-
-function recentCustomers(customers: Customer[]): Customer[] {
-  const cutoff = Date.now() - THREE_DAYS_MS;
-  return customers.filter((c) => new Date(c.createdAt).getTime() >= cutoff);
-}
-
-function FeedbackCard({ customer }: { customer: Customer }) {
+function FeedbackCard({ customer, notified }: { customer: Customer; notified: boolean }) {
   const { settings, logFeedback, undoFeedback } = useStore();
-  const notified = (customer.feedbackLog ?? []).length > 0;
+  const order = latestOrder(customer);
 
   const msg = buildFeedbackMessage(customer.name, settings.shopName, settings.reviewUrl);
 
@@ -40,6 +35,11 @@ function FeedbackCard({ customer }: { customer: Customer }) {
         <View style={{ flex: 1 }}>
           <Text style={styles.name} numberOfLines={1}>{customer.name}</Text>
           <Text style={styles.sub} numberOfLines={1}>{customer.phone}</Text>
+          {order && (
+            <Text style={styles.sub} numberOfLines={1}>
+              Latest order: {order.cake} · {formatDate(new Date(`${order.date}T00:00:00`))}
+            </Text>
+          )}
         </View>
         {notified && (
           <View style={styles.badge}>
@@ -65,9 +65,8 @@ export default function FeedbackTab() {
   const { customers } = useStore();
   const [tab, setTab] = useState<'pending' | 'notified'>('pending');
 
-  const recent = recentCustomers(customers);
-  const pending = recent.filter((c) => (c.feedbackLog ?? []).length === 0);
-  const notified = recent.filter((c) => (c.feedbackLog ?? []).length > 0);
+  const pending = customers.filter((c) => feedbackStatus(c) === 'pending');
+  const notified = customers.filter((c) => feedbackStatus(c) === 'notified');
   const list = tab === 'pending' ? pending : notified;
 
   return (
@@ -99,12 +98,12 @@ export default function FeedbackTab() {
             title={tab === 'pending' ? 'All caught up!' : 'None yet'}
             message={
               tab === 'pending'
-                ? 'No new customers in the last 3 days to notify.'
+                ? 'No new orders in the last 3 days to ask feedback for.'
                 : 'Send a feedback request to see customers here.'
             }
           />
         ) : (
-          list.map((c) => <FeedbackCard key={c.id} customer={c} />)
+          list.map((c) => <FeedbackCard key={c.id} customer={c} notified={tab === 'notified'} />)
         )}
       </ScrollView>
     </View>

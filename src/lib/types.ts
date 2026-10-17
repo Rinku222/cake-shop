@@ -22,6 +22,8 @@ export interface Order {
   weightKg?: number;
   amount?: number;
   notes?: string;
+  /** When the order was recorded (ISO timestamp). Missing on orders saved by older versions. */
+  createdAt?: string;
 }
 
 /** Records that a feedback request was sent to a customer. */

@@ -70,8 +70,11 @@ export function UpcomingCard({ item }: { item: UpcomingItem }) {
               onPress={() => logContact(customer.id, { occasionId: occasion.id, year, channel: 'manual' })}
             />
           )}
-          <Button title="" icon="chatbubble-outline" variant="sms" compact onPress={sendSms} />
-          <Button title="" icon="logo-whatsapp" variant="whatsapp" compact onPress={sendWhatsApp} />
+        </View>
+
+        <View style={styles.send}>
+          <Button title="SMS" icon="chatbubble-ellipses" variant="sms" compact onPress={sendSms} style={styles.sendButton} />
+          <Button title="WhatsApp" icon="logo-whatsapp" variant="whatsapp" compact onPress={sendWhatsApp} style={styles.sendButton} />
         </View>
       </Pressable>
   );
@@ -96,4 +99,6 @@ const styles = StyleSheet.create({
   date: { fontSize: 11, color: colors.muted, marginTop: 2 },
   lastOrder: { fontSize: 12, color: colors.muted, fontStyle: 'italic' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  send: { flexDirection: 'row', gap: spacing.sm },
+  sendButton: { flex: 1 },
 });

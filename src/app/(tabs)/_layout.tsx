@@ -2,15 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
 import { getUpcoming } from '@/lib/dates';
+import { countFeedbackPending } from '@/lib/feedback';
 import { useStore } from '@/lib/store';
 import { colors } from '@/lib/theme';
 
 export default function TabsLayout() {
   const { customers, settings } = useStore();
   const pending = getUpcoming(customers, settings.upcomingWindowDays).filter((i) => !i.reminded).length;
-  const feedbackPending = customers.filter(
-    (c) => Date.now() - new Date(c.createdAt).getTime() <= 3 * 24 * 60 * 60 * 1000 && (c.feedbackLog ?? []).length === 0
-  ).length;
+  const feedbackPending = countFeedbackPending(customers);
 
   return (
     <Tabs

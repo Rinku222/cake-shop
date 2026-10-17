@@ -33,6 +33,7 @@ export function buildSampleCustomers(today = new Date()): Customer[] {
     occasions,
     orders: orders(occasions.map((o) => o.id)),
     contactLog: [],
+    feedbackLog: [],
     createdAt: shift(-365).toISOString(),
   });
 

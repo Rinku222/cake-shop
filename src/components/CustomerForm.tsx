@@ -9,7 +9,7 @@ import { normalizePhone, uid, useStore } from '@/lib/store';
 import { colors, spacing } from '@/lib/theme';
 import { Customer, Occasion, OCCASION_TYPES, OccasionType, Order } from '@/lib/types';
 
-export type CustomerFormValues = Omit<Customer, 'id' | 'createdAt' | 'contactLog'>;
+export type CustomerFormValues = Omit<Customer, 'id' | 'createdAt' | 'contactLog' | 'feedbackLog'>;
 
 interface OccasionDraft {
   id: string;
