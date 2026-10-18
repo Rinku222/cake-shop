@@ -116,8 +116,8 @@ interface StoreValue extends PersistedState {
   deleteOrder: (customerId: string, orderId: string) => void;
   logContact: (customerId: string, log: Omit<ContactLog, "at">) => void;
   undoContact: (customerId: string, occasionId: string, year: number) => void;
-  logFeedback: (customerId: string, channel: FeedbackLog['channel']) => void;
-  undoFeedback: (customerId: string) => void;
+  logFeedback: (customerId: string, orderId: string, channel: FeedbackLog['channel']) => void;
+  undoFeedback: (customerId: string, orderId: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   replaceAll: (state: PersistedState) => void;
 }
@@ -290,14 +290,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             (l) => !(l.occasionId === occasionId && l.year === year),
           ),
         })),
-      logFeedback: (customerId, channel) =>
+      logFeedback: (customerId, orderId, channel) =>
         mapCustomer(customerId, (c) => ({
           ...c,
-          feedbackLog: [{ channel, at: new Date().toISOString() }, ...(c.feedbackLog ?? [])],
+          feedbackLog: [{ channel, orderId, at: new Date().toISOString() }, ...(c.feedbackLog ?? [])],
         })),
-      // Removes only the latest request, so earlier orders stay marked as notified.
-      undoFeedback: (customerId) =>
-        mapCustomer(customerId, (c) => ({ ...c, feedbackLog: (c.feedbackLog ?? []).slice(1) })),
+      undoFeedback: (customerId, orderId) =>
+        mapCustomer(customerId, (c) => ({
+          ...c,
+          feedbackLog: (c.feedbackLog ?? []).filter((l) => l.orderId !== orderId),
+        })),
       updateSettings: (patch) =>
         setState((s) => ({ ...s, settings: { ...s.settings, ...patch } })),
       replaceAll: (next) =>

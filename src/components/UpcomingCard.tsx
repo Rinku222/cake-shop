@@ -10,7 +10,8 @@ export function UpcomingCard({ item }: { item: UpcomingItem }) {
   const { settings, logContact, undoContact } = useStore();
   const { customer, occasion, date, daysAway, reminded } = item;
   const milestone = milestoneText(occasion, date);
-  const lastOrder = customer.orders[0];
+  // Prefer the latest order for this occasion; fall back to their latest order overall.
+  const lastOrder = customer.orders.find((o) => o.occasionId === occasion.id) ?? customer.orders[0];
   const year = date.getFullYear();
 
   const sendWhatsApp = async () => {

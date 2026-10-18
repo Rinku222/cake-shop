@@ -1,43 +1,49 @@
 import { Customer, Order } from './types';
 
-/** How long after an order the customer is asked for feedback. */
+/** How long after an order is created the customer is asked for feedback about it. */
 const FEEDBACK_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
-/** When an order was recorded; older orders without a timestamp fall back to their order date. */
-function orderTime(o: Order): number {
+/** One order that a feedback request can be sent for. */
+export interface FeedbackItem {
+  customer: Customer;
+  order: Order;
+  notified: boolean;
+}
+
+/** When the order was recorded; older orders without a timestamp use their order date. */
+function createdTime(o: Order): number {
   if (o.createdAt) return new Date(o.createdAt).getTime();
   const [y, m, d] = o.date.split('-').map(Number);
   return new Date(y, m - 1, d).getTime();
 }
 
-/** The customer's most recently created order, if any. */
-export function latestOrder(c: Customer): Order | undefined {
-  let latest: Order | undefined;
-  for (const o of c.orders) if (!latest || orderTime(o) > orderTime(latest)) latest = o;
-  return latest;
-}
-
-/** When the latest order was created (or the customer, if they have no orders). */
-function lastOrderAt(c: Customer): number {
-  const o = latestOrder(c);
-  return o ? orderTime(o) : new Date(c.createdAt).getTime();
+/**
+ * Whether a feedback request was already sent for this order. Requests from older versions
+ * weren't tied to an order, so they count for every order created before they were sent.
+ */
+function isNotified(c: Customer, o: Order): boolean {
+  return (c.feedbackLog ?? []).some((l) =>
+    l.orderId ? l.orderId === o.id : new Date(l.at).getTime() >= createdTime(o),
+  );
 }
 
 /**
- * Feedback status for the customer's latest order:
- * - 'pending': ordered in the last 3 days and no feedback request sent since that order
- * - 'notified': ordered in the last 3 days and a request was sent after that order
- * - null: no order in the last 3 days
- * A new order for the same customer makes them 'pending' again.
+ * Every order created in the last 3 days, one item per order — so a customer with two new
+ * orders appears twice. Newest orders first.
  */
-export function feedbackStatus(c: Customer, now = Date.now()): 'pending' | 'notified' | null {
-  const orderedAt = lastOrderAt(c);
-  if (now - orderedAt > FEEDBACK_WINDOW_MS) return null;
-  const lastSent = c.feedbackLog?.[0];
-  return lastSent && new Date(lastSent.at).getTime() >= orderedAt ? 'notified' : 'pending';
+export function getFeedbackItems(customers: Customer[], now = Date.now()): FeedbackItem[] {
+  const items: (FeedbackItem & { createdAt: number })[] = [];
+  for (const customer of customers) {
+    for (const order of customer.orders) {
+      const createdAt = createdTime(order);
+      if (now - createdAt > FEEDBACK_WINDOW_MS) continue;
+      items.push({ customer, order, notified: isNotified(customer, order), createdAt });
+    }
+  }
+  return items.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** Number of customers whose latest order still needs a feedback request. */
+/** Number of recent orders still waiting for a feedback request. */
 export function countFeedbackPending(customers: Customer[]): number {
-  return customers.filter((c) => feedbackStatus(c) === 'pending').length;
+  return getFeedbackItems(customers).filter((i) => !i.notified).length;
 }

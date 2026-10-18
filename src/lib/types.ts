@@ -26,10 +26,12 @@ export interface Order {
   createdAt?: string;
 }
 
-/** Records that a feedback request was sent to a customer. */
+/** Records that a feedback request was sent to a customer for one of their orders. */
 export interface FeedbackLog {
   at: string; // ISO timestamp
   channel: 'whatsapp' | 'sms';
+  /** The order the request was about. Missing on requests sent by older versions. */
+  orderId?: string;
 }
 
 /** Records that the customer was reminded about a specific occurrence of an occasion. */
