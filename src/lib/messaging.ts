@@ -73,7 +73,7 @@ export function callPhone(phone: string) {
   return open(`tel:${phone}`, 'Calling is not available on this device.');
 }
 
-const GOOGLE_REVIEW_URL = 'https://www.google.com/maps/place//data=!4m3!3m2!1s0x3950b92e00f2aa3f:0x2af7a337230cf0ef!12e1';
+const GOOGLE_REVIEW_URL = 'https://search.google.com/local/writereview?placeid=ChIJW6LrQ0C5UDkRUTzwLTJSoJk';
 
 export function buildFeedbackMessage(customerName: string, shopName: string, reviewUrl?: string): string {
   const firstName = customerName.trim().split(/\s+/)[0];

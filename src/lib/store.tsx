@@ -40,15 +40,15 @@ const MESSAGE_TEMPLATE_V4 =
   "Hi {name}! 🎂\n\n{whose} {occasion} {when}. We’d be truly honoured to make it extra special with a freshly baked cake from {shop}! Your favourite {flavor} is always ready whenever you are. 🍰{reorder}\n\nWarm regards,\n{shop} ❤️";
 
 export const DEFAULT_SETTINGS: Settings = {
-  shopName: "Yummie’s Bakery",
+  shopName: "Anmol Bakers",
   countryCode: "91",
   currency: "₹",
   upcomingWindowDays: 15,
   messageTemplate: MESSAGE_TEMPLATE_V4,
-  swiggyUrl: "https://www.swiggy.com/menu/1387782?source=sharing",
-  zomatoUrl: "https://zomato.onelink.me/xqzv/txaxxpuy",
-  mapsUrl: 'https://maps.app.goo.gl/Q97QZ9YJ1v7G2RNM6',
-  reviewUrl: 'https://www.google.com/maps/place//data=!4m3!3m2!1s0x3950b92e00f2aa3f:0x2af7a337230cf0ef!12e1',
+  swiggyUrl: "https://www.swiggy.com/menu/659352?source=sharing",
+  zomatoUrl: "https://zomato.onelink.me/xqzv/u6onqh7y",
+  mapsUrl: 'https://maps.app.goo.gl/GBpVKwhQCnprz7Nx8',
+  reviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJW6LrQ0C5UDkRUTzwLTJSoJk',
 };
 
 /** Applies defaults and one-off template migrations to saved settings. */
